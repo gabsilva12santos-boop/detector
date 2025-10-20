@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detecterprevine - Principal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        /* ------------------------------------- */
+        /* 1. VARIÁVEIS DE CORES ABSTRATAS */
+        /* ------------------------------------- */
+        :root {
+            --cor-amarelo: #FFD700;
+            --cor-roxo: #9933FF;
+            --cor-laranja: #FF6600;
+            --cor-pink: #FF3399;
+            --cor-base-fundo: #000000;
+            --cor-base-card: #FFFFFF;
+        }
+
+        /* ------------------------------------- */
+        /* 2. ESTILO GERAL E MAPA */
+        /* ------------------------------------- */
+        body, html {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--cor-base-fundo);
+            height: 100vh;
+            overflow: hidden; 
+            display: flex;
+            flex-direction: column;
+        }
+
+        #map {
+            flex-grow: 1; 
+            position: relative;
+            z-index: 10;
+        }
+        
+        /* ------------------------------------- */
+        /* 3. BARRA DE NAVEGAÇÃO SUPERIOR */
+        /* ------------------------------------- */
+        .nav-bar {
+            background-color: var(--cor-base-fundo);
+            color: var(--cor-base-card);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+            z-index: 30;
+        }
+        .nav-bar h1 {
+            margin: 0;
+            font-size: 1.8em;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-align: center;
+            flex-grow: 1;
+        }
+        .nav-bar .hamburger-menu {
+            font-size: 1.5em;
+            cursor: pointer;
+            transition: color 0.3s;
+            position: absolute;
+            left: 20px;
+            z-index: 50;
+        }
+        .nav-bar .hamburger-menu:hover {
+            color: var(--cor-laranja);
+        }
+
+        /* ------------------------------------- */
+        /* 4. PAINEL LATERAL (SIDE PANEL) */
+        /* ------------------------------------- */
+
+        #sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 35;
+            display: none;
+            cursor: pointer;
+        }
+
+        .side-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: 300px;
+            background-color: rgba(0, 0, 0, 0.95);
+            color: var(--cor-base-card);
+            z-index: 40;
+            transform: translateX(-100%);
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            padding-top: 80px;
+        }
+        .side-panel.open {
+            transform: translateX(0);
+        }
+        .side-panel-content {
+            padding: 20px;
+        }
+        .side-panel-content h3 {
+            border-bottom: 2px solid var(--cor-amarelo);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            color: var(--cor-roxo);
+        }
+        .side-panel-content button {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 10px;
+            text-align: left;
+            background-color: #1a1a1a;
+            color: var(--cor-base-card);
+            border: none;
+            border-left: 5px solid transparent;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background-color 0.3s, border-left 0.3s;
+        }
+        .side-panel-content button:hover {
+            background-color: #333;
+            border-left-color: var(--cor-pink);
+        }
+        .side-panel-content button i {
+            margin-right: 15px;
+        }
+
+        /* ------------------------------------- */
+        /* 5. MODAL */
+        /* ------------------------------------- */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .modal-content {
+            background-color: var(--cor-base-card);
+            padding: 30px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 450px;
+            color: var(--cor-base-fundo);
+        }
+        .modal-input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .modal-button {
+            width: 100%;
+            padding: 10px;
+            background-color: var(--cor-laranja);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .modal-close {
+            float: right;
+            font-size: 24px;
+            cursor: pointer;
+            color: #aaa;
+        }
+        .modal-title-register { color: var(--cor-amarelo); }
+        .modal-title-delete { color: var(--cor-pink); }
+        .modal-title-learn { color: var(--cor-roxo); }
+
+        /* ------------------------------------- */
+        /* 6. ESTILO DO POPUP E ÍCONE */
+        /* ------------------------------------- */
+        .leaflet-popup-content-wrapper {
+            background-color: rgba(255, 255, 255, 0.95);
+            color: var(--cor-base-fundo);
+            font-family: 'Poppins', sans-serif;
+            border-radius: 6px;
+        }
+        .popup-status { font-weight: 700; }
+        .popup-btn {
+            background-color: var(--cor-laranja);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-top: 5px;
+            display: block;
+            text-align: center;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+        .popup-btn:hover { background-color: #e05c00; }
+    </style>
+</head>
+<body>
+
+    <div class="nav-bar">
+        <span id="menuButton" class="hamburger-menu" onclick="toggleSidePanel()">
+            <i class="fas fa-bars"></i>
+        </span>
+        <h1>Detecterprevine</h1>
+    </div>
+
+    <div id="map"></div>
+
+    <div id="sidebar-overlay" onclick="closeSidePanel()"></div>
+
+    <div id="sidePanel" class="side-panel">
+        <div class="side-panel-content">
+            <h3>Menu Principal</h3>
+            
+            <button onclick="openModal('register')">
+                <i class="fas fa-plus-circle"></i> REGISTRAR DETECTOR
+            </button>
+            
+            <button onclick="openModal('delete')">
+                <i class="fas fa-trash-alt"></i> EXCLUIR DETECTOR
+            </button>
+            
+            <button onclick="openModal('learn')">
+                <i class="fas fa-book-open"></i> SAIBA MAIS
+            </button>
+
+            <button style="margin-top: 30px; border-left-color: var(--cor-pink);" onclick="window.location.href = 'index.html'">
+                <i class="fas fa-sign-out-alt"></i> SAIR
+            </button>
+        </div>
+    </div>
+
+    <div id="appModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal()">
+                &times;
+            </span>
+            <h3 id="modalTitle"></h3>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        // -------------------------------------
+        // CONFIGURAÇÃO DO MAPA E VARIÁVEIS GLOBAIS
+        // -------------------------------------
+        const INITIAL_COORDS = [-23.5505, -46.6333]; // Coordenadas de São Paulo
+        const INITIAL_ZOOM = 12;
+
+        let map = L.map('map').setView(INITIAL_COORDS, INITIAL_ZOOM);
+        
+        // Carrega o mapa base
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
+        }).addTo(map);
+
+        let detectors = [];
+        let markers = [];
+
+        // -------------------------------------
+        // FUNÇÕES DE PERSISTÊNCIA (localStorage)
+        // -------------------------------------
+
+        function saveDetectors() {
+            localStorage.setItem('allDetectors', JSON.stringify(detectors));
+        }
+
+        function loadDetectors() {
+            // Remove marcadores existentes antes de recarregar
+            markers.forEach(marker => map.removeLayer(marker));
+            markers = [];
+            detectors = [];
+
+            const storedDetectors = localStorage.getItem('allDetectors');
+            if (storedDetectors) {
+                // Carrega dados salvos
+                detectors = JSON.parse(storedDetectors);
+            } else {
+                // Se não houver dados, carrega o detector de exemplo
+                const sampleDetector = {
+                    nome: "Detector Central",
+                    cep: "01001-000",
+                    lat: INITIAL_COORDS[0],
+                    lng: INITIAL_COORDS[1],
+                    status: 'Alert',
+                    lastUpdate: new Date().toLocaleTimeString('pt-BR'),
+                    precision: '99.9%',
+                    data24h: [5, 12, 10, 8, 15, 20, 18, 25, 30, 22, 19, 15, 12, 10, 8, 5, 4, 3, 2, 1, 0, 0, 0, 0],
+                    dataSemana: [15, 25, 30, 10, 5, 2, 8]
+                };
+                detectors.push(sampleDetector);
+            }
+            // Adiciona TODOS os detectores ao mapa
+            detectors.forEach(d => addDetectorToMap(d));
+        }
+        
+        // -------------------------------------
+        // FUNÇÕES DO MAPA
+        // -------------------------------------
+        function statusCor(status) {
+            switch (status) {
+                case 'Clean': return 'green';
+                case 'Alert': return 'red';
+                case 'Warning': return 'var(--cor-amarelo)';
+                default: return 'var(--cor-roxo)';
+            }
+        }
+
+        function addDetectorToMap(detector) {
+            const color = statusCor(detector.status);
+            
+            let detectorIcon = L.divIcon({
+                className: 'custom-div-icon',
+                html: `<div style="background-color: ${color}; width: 10px; height: 10px; border-radius: 50%; border: 3px solid ${color}; box-shadow: 0 0 15px ${color};"></div>`,
+                iconSize: [20, 20],
+                iconAnchor: [10, 20]
+            });
+
+            let marker = L.marker([detector.lat, detector.lng], { icon: detectorIcon }).addTo(map);
+            
+            let popupContent = `
+                <b>${detector.nome}</b><br>
+                Status: <span class="popup-status" style="color:${color}">${detector.status}</span><br>
+                Última Atualização: ${detector.lastUpdate}<br>
+                <a href="#" class="popup-btn" onclick="goToDashboard('${detector.nome}')">Ver Mais</a>
+            `;
+
+            marker.bindPopup(popupContent);
+            marker.detectorNome = detector.nome;
+            markers.push(marker);
+        }
+
+        function goToDashboard(detectorName) {
+            const detector = detectors.find(d => d.nome === detectorName);
+            localStorage.setItem('currentDetectorData', JSON.stringify(detector));
+            window.location.href = 'detector-dashboard.html'; 
+        }
+
+        // -------------------------------------
+        // LÓGICA DO MENU E MODAIS 
+        // -------------------------------------
+        const sidePanel = document.getElementById('sidePanel');
+        const overlay = document.getElementById('sidebar-overlay');
+
+        function toggleSidePanel() {
+            sidePanel.classList.toggle('open');
+            overlay.style.display = sidePanel.classList.contains('open') ? 'block' : 'none';
+        }
+
+        function closeSidePanel() {
+            sidePanel.classList.remove('open');
+            overlay.style.display = 'none';
+        }
+
+        function closeModal() {
+            document.getElementById('appModal').style.display = 'none';
+        }
+
+        function openModal(type) {
+            closeSidePanel(); 
+            const modal = document.getElementById('appModal');
+            const title = document.getElementById('modalTitle');
+            const body = document.getElementById('modalBody');
+            
+            body.innerHTML = '';
+            title.className = ''; 
+
+            if (type === 'register') {
+                title.textContent = 'REGISTRAR NOVO DETECTOR';
+                title.classList.add('modal-title-register');
+                body.innerHTML = `
+                    <p style="color:var(--cor-base-fundo);">O sistema tentará buscar as coordenadas exatas para o seu CEP.</p>
+                    <input type="text" id="regNome" class="modal-input" placeholder="Nome do Detector (Ex: Cozinha)" required>
+                    <input type="text" id="regCEP" class="modal-input" placeholder="CEP (Apenas números, 8 dígitos)" required>
+                    <input type="text" id="regNumero" class="modal-input" placeholder="Número de Notificação (Opcional)">
+                    <button class="modal-button" onclick="handleRegistration()">Registrar</button>
+                `;
+            } else if (type === 'delete') {
+                title.textContent = 'EXCLUIR DETECTOR';
+                title.classList.add('modal-title-delete');
+                body.innerHTML = `
+                    <p style="color:var(--cor-base-fundo);">Digite o nome do detector a ser removido:</p>
+                    <input type="text" id="delNome" class="modal-input" placeholder="Nome do Detector" required>
+                    <button class="modal-button" style="background-color: var(--cor-pink);" onclick="handleDeletion()">Excluir</button>
+                `;
+            } else if (type === 'learn') {
+                title.textContent = 'SAIBA MAIS';
+                title.classList.add('modal-title-learn');
+                body.innerHTML = `
+                    <p style="color:var(--cor-base-fundo);">Conteúdo educacional sobre gases e segurança:</p>
+                    <ul>
+                        <li><i class="fas fa-radiation" style="color:var(--cor-amarelo);"></i> **Alertas:** Laranja para Aviso, Vermelho para Perigo.</li>
+                        <li><i class="fas fa-shield-alt" style="color:var(--cor-roxo);"></i> **Precisão:** Nossos dispositivos alcançam alta precisão em testes de laboratório.</li>
+                        <li><i class="fas fa-book-reader" style="color:var(--cor-pink);"></i> **O que fazer:** Em caso de alerta, evacue a área imediatamente e chame as autoridades.</li>
+                    </ul>
+                `;
+            }
+            
+            modal.style.display = 'flex';
+        }
+
+        /**
+         * Tenta encontrar as coordenadas (Lat/Lng) usando duas APIs de fallback.
+         * 1. Tenta BrasilAPI (mais simples, mas falha em CEPs específicos).
+         * 2. Se falhar, tenta ViaCEP + Nominatim (mais complexo, mas usa o endereço completo).
+         * @param {string} cepLimpo - O CEP formatado (8 dígitos).
+         * @returns {Promise<{lat: number, lng: number}|null>} - As coordenadas ou null.
+         */
+        async function getCoordinates(cepLimpo) {
+            let lat = null;
+            let lng = null;
+            let enderecoCompleto = null;
+
+            // TENTATIVA 1: BrasilAPI (Rápido e direto, mas falha em CEPs sem geo-referência)
+            try {
+                const geoResponse = await fetch(`https://brasilapi.com.br/api/cep/v2/${cepLimpo}`);
+                const data = await geoResponse.json();
+                
+                if (geoResponse.ok && data.location && data.location.coordinates && data.location.coordinates.latitude) {
+                    lat = parseFloat(data.location.coordinates.latitude);
+                    lng = parseFloat(data.location.coordinates.longitude);
+                    console.log(`Coordenadas obtidas via BrasilAPI para o CEP ${cepLimpo}.`);
+                    return { lat, lng }; // SUCESSO!
+                }
+
+                if (data.street) {
+                    enderecoCompleto = `${data.street || ''}, ${data.neighborhood || ''}, ${data.city} - ${data.state}, Brasil`;
+                }
+
+            } catch (e) {
+                console.warn(`BrasilAPI falhou ou não forneceu Lat/Lng para ${cepLimpo}. Tentando fallback.`);
+                // Ignoramos e vamos para o fallback.
+            }
+
+            // TENTATIVA 2: ViaCEP (para obter o endereço) + Nominatim (para converter endereço para Lat/Lng)
+            if (!lat || !lng) {
+                try {
+                    // Passo 2a: Se não pegou o endereço antes, usa ViaCEP
+                    if (!enderecoCompleto) {
+                        const viaCepResponse = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`);
+                        const dataViaCep = await viaCepResponse.json();
+                        
+                        if (dataViaCep.erro) {
+                            console.warn(`ViaCEP falhou para o CEP ${cepLimpo}.`);
+                            return null;
+                        }
+                        enderecoCompleto = `${dataViaCep.logradouro || ''}, ${dataViaCep.bairro || ''}, ${dataViaCep.localidade} - ${dataViaCep.uf}, Brasil`;
+                    }
+
+                    // Passo 2b: Usar Nominatim para converter o endereço em coordenadas
+                    const nominatimResponse = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(enderecoCompleto)}&limit=1`, {
+                        headers: {
+                            // Header importante para evitar bloqueio do Nominatim
+                            'User-Agent': 'DetectorPrevineApp/1.0 (Protótipo Educacional)'
+                        }
+                    });
+                    const locacoes = await nominatimResponse.json();
+
+                    if (locacoes.length > 0) {
+                        const loc = locacoes[0];
+                        lat = parseFloat(loc.lat);
+                        lng = parseFloat(loc.lon);
+                        console.log(`Coordenadas obtidas via Nominatim (ViaCEP) para o CEP ${cepLimpo}.`);
+                        return { lat, lng }; // SUCESSO!
+                    }
+
+                } catch (e) {
+                    console.error("Erro na TENTATIVA 2 (ViaCEP/Nominatim):", e);
+                }
+            }
+
+            return null; // FALHA TOTAL
+        }
+
+
+        // -------------------------------------
+        // LÓGICA DE REGISTRO (Utilizando o novo getCoordinates)
+        // -------------------------------------
+        async function handleRegistration() {
+            const nome = document.getElementById('regNome').value.trim();
+            const cepInput = document.getElementById('regCEP').value.trim();
+            const cepLimpo = cepInput.replace(/\D/g, ''); 
+            
+            if (!nome || cepLimpo.length !== 8) {
+                alert("Nome é obrigatório e CEP deve ter 8 dígitos (apenas números).");
+                return;
+            }
+
+            let newLat, newLng;
+            const coords = await getCoordinates(cepLimpo);
+
+            if (coords) {
+                newLat = coords.lat;
+                newLng = coords.lng;
+            } else {
+                // FALLBACK MÁXIMO: Usa as coordenadas de São Paulo e avisa o usuário
+                newLat = INITIAL_COORDS[0];
+                newLng = INITIAL_COORDS[1];
+                
+                alert(`AVISO: Não foi possível obter as coordenadas exatas para o CEP ${cepInput}. O detector será registrado nas coordenadas centrais de São Paulo. Tente um CEP de rua principal mais tarde.`);
+            }
+
+
+            // Cria o novo detector localmente
+            const newDetector = {
+                nome: nome,
+                cep: cepInput,
+                lat: newLat,
+                lng: newLng,
+                status: 'Clean',
+                lastUpdate: new Date().toLocaleTimeString('pt-BR'),
+                precision: '99.5%',
+                data24h: [5, 12, 10, 8, 15, 20, 18, 25, 30, 22, 19, 15, 12, 10, 8, 5, 4, 3, 2, 1, 0, 0, 0, 0],
+                dataSemana: [15, 25, 30, 10, 5, 2, 8]
+            };
+
+            detectors.push(newDetector);
+            addDetectorToMap(newDetector);
+            saveDetectors(); // SALVA O NOVO DETECTOR
+            closeModal();
+            map.setView([newLat, newLng], 15);
+            alert(`Detector '${nome}' registrado com sucesso no mapa!`);
+        }
+
+        // -------------------------------------
+        // LÓGICA DE EXCLUSÃO
+        // -------------------------------------
+        function handleDeletion() {
+            const nome = document.getElementById('delNome').value.trim();
+            if (!nome) return;
+
+            const index = detectors.findIndex(d => d.nome === nome);
+
+            if (index !== -1) {
+                const markerIndex = markers.findIndex(m => m.detectorNome === nome);
+                if (markerIndex !== -1) {
+                    map.removeLayer(markers[markerIndex]);
+                    markers.splice(markerIndex, 1);
+                }
+                
+                detectors.splice(index, 1);
+                saveDetectors(); // SALVA A LISTA ATUALIZADA
+                alert(`Detector '${nome}' excluído com sucesso.`);
+                closeModal();
+            } else {
+                alert("Detector não encontrado. Verifique o nome.");
+            }
+        }
+
+        // -------------------------------------
+        // INICIALIZAÇÃO
+        // -------------------------------------
+        loadDetectors();
+    </script>
+</body>
+</html>

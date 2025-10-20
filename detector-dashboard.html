@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="pageTitle">Dashboard - Detector</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* ------------------------------------- */
+        /* 1. VARIÁVEIS DE CORES ABSTRATAS */
+        /* ------------------------------------- */
+        :root {
+            --cor-amarelo: #FFD700;
+            --cor-roxo: #9933FF;
+            --cor-laranja: #FF6600;
+            --cor-pink: #FF3399;
+            --cor-base-fundo: #000000;
+            --cor-base-card: #FFFFFF;
+        }
+
+        /* ------------------------------------- */
+        /* 2. ESTILO GERAL E FUNDO */
+        /* ------------------------------------- */
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--cor-base-fundo);
+            color: var(--cor-base-card);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        /* ------------------------------------- */
+        /* 3. BARRA DE NAVEGAÇÃO / HEADER */
+        /* ------------------------------------- */
+        .header {
+            background-color: var(--cor-base-fundo);
+            color: var(--cor-base-card);
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+        }
+        .header h2 {
+            margin: 0;
+            font-size: 1.5em;
+            font-weight: 600;
+            flex-grow: 1;
+        }
+        .header .back-button {
+            color: var(--cor-amarelo);
+            font-size: 1.5em;
+            margin-right: 20px;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+        .header .back-button:hover {
+            color: var(--cor-laranja);
+        }
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 0.9em;
+            margin-left: 20px;
+        }
+
+        /* ------------------------------------- */
+        /* 4. CONTEÚDO PRINCIPAL (GRÁFICO E DADOS) */
+        /* ------------------------------------- */
+        .content {
+            padding: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .card {
+            background-color: #1a1a1a;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            border-left: 5px solid var(--cor-roxo); /* Toque Abstrato */
+        }
+
+        /* GRÁFICO */
+        .chart-container {
+            height: 400px;
+            margin-top: 20px;
+        }
+        .chart-options button {
+            background-color: var(--cor-laranja);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            margin-right: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .chart-options button:hover {
+            background-color: #e05c00;
+        }
+        .chart-options button.active {
+            background-color: var(--cor-roxo);
+        }
+
+        /* TABELA DE DETALHES */
+        .detail-table table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .detail-table th, .detail-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #333;
+        }
+        .detail-table th {
+            background-color: #2a2a2a;
+            color: var(--cor-amarelo);
+            font-weight: 600;
+            border-left: 3px solid var(--cor-pink);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <span class="back-button" onclick="history.back()"><i class="fas fa-arrow-left"></i></span>
+        <h2 id="detectorName"></h2>
+        <span id="detectorStatusBadge" class="status-badge"></span>
+    </div>
+
+    <div class="content">
+        
+        <div class="card">
+            <h3>Histórico de Níveis de Gás</h3>
+            
+            <div class="chart-options">
+                <button id="btn24h" class="active" onclick="alterarPeriodo('24h')">Últimas 24h</button>
+                <button id="btnSemana" onclick="alterarPeriodo('semana')">Última Semana</button>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="gasChart"></canvas>
+            </div>
+        </div>
+
+        <div class="card detail-table">
+            <h3>Detalhes do Dispositivo</h3>
+            <table>
+                <tr>
+                    <th><i class="fas fa-tag"></i> Nome Completo</th>
+                    <td id="infoName"></td>
+                </tr>
+                <tr>
+                    <th><i class="fas fa-map-marker-alt"></i> CEP Registrado</th>
+                    <td id="infoCEP"></td>
+                </tr>
+                <tr>
+                    <th><i class="fas fa-clock"></i> Última Atualização</th>
+                    <td id="infoUpdate"></td>
+                </tr>
+                <tr>
+                    <th><i class="fas fa-ruler-combined"></i> Precisão de Leitura</th>
+                    <td id="infoPrecision"></td>
+                </tr>
+            </table>
+        </div>
+
+    </div>
+
+    <script>
+        let detectorData = {};
+        let chartInstance = null;
+        
+        // -------------------------------------
+        // 1. CARREGAR DADOS DO DETECTOR
+        // -------------------------------------
+        function loadDetectorData() {
+            const storedData = localStorage.getItem('currentDetectorData');
+            if (storedData) {
+                detectorData = JSON.parse(storedData);
+                
+                // Atualiza o Header e Detalhes
+                document.getElementById('detectorName').textContent = detectorData.nome;
+                document.getElementById('pageTitle').textContent = `Dashboard - ${detectorData.nome}`;
+                document.getElementById('infoName').textContent = detectorData.nome;
+                document.getElementById('infoCEP').textContent = detectorData.cep;
+                document.getElementById('infoUpdate').textContent = detectorData.lastUpdate;
+                document.getElementById('infoPrecision').textContent = detectorData.precision;
+                
+                // Atualiza o Badge de Status
+                const statusBadge = document.getElementById('detectorStatusBadge');
+                statusBadge.textContent = detectorData.status.toUpperCase();
+                let color;
+                switch (detectorData.status) {
+                    case 'Clean': color = 'green'; break;
+                    case 'Alert': color = 'red'; break;
+                    case 'Warning': color = 'var(--cor-amarelo)'; break;
+                    default: color = 'var(--cor-roxo)';
+                }
+                statusBadge.style.backgroundColor = color;
+                statusBadge.style.color = color === 'var(--cor-amarelo)' ? 'black' : 'white';
+
+                // Inicializa o gráfico com 24h
+                gerarGrafico('24h');
+            } else {
+                // Caso não haja dados (acesso direto)
+                document.getElementById('detectorName').textContent = "Detector Não Encontrado";
+                document.getElementById('detectorStatusBadge').textContent = "ERRO";
+                document.getElementById('detectorStatusBadge').style.backgroundColor = 'red';
+            }
+        }
+
+        // -------------------------------------
+        // 2. LÓGICA DO GRÁFICO
+        // -------------------------------------
+
+        function alterarPeriodo(periodo) {
+            // Remove a classe 'active' de todos os botões
+            document.querySelectorAll('.chart-options button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            // Adiciona a classe 'active' no botão clicado
+            document.getElementById(`btn${periodo === '24h' ? '24h' : 'Semana'}`).classList.add('active');
+
+            gerarGrafico(periodo);
+        }
+
+        function gerarGrafico(periodo) {
+            if (chartInstance) chartInstance.destroy();
+
+            let labels = [];
+            let data = [];
+            let borderColor = '';
+
+            if (periodo === '24h') {
+                labels = ["1h", "2h", "3h", "4h", "5h", "6h", "7h", "8h", "9h", "10h", "11h", "12h", "13h", "14h", "15h", "16h", "17h", "18h", "19h", "20h", "21h", "22h", "23h", "24h"];
+                data = detectorData.data24h || [0];
+                borderColor = 'var(--cor-roxo)';
+            } else { // semana
+                labels = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+                data = detectorData.dataSemana || [0];
+                borderColor = 'var(--cor-pink)';
+            }
+            
+            // Cor do fundo do gráfico baseada na cor abstrata
+            const backgroundColor = periodo === '24h' ? 'rgba(153, 51, 255, 0.2)' : 'rgba(255, 51, 153, 0.2)';
+
+            let ctx = document.getElementById('gasChart').getContext('2d');
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Nível de Gás (PPM)',
+                        data: data,
+                        borderColor: borderColor,
+                        backgroundColor: backgroundColor,
+                        fill: true,
+                        tension: 0.4, // Curvas suaves
+                        pointRadius: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 40, // Maximo para simulação
+                            grid: {
+                                color: '#333',
+                            },
+                            ticks: {
+                                color: 'white'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: '#333',
+                            },
+                            ticks: {
+                                color: 'white'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: 'white'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Carrega tudo ao iniciar a página
+        window.onload = loadDetectorData;
+    <script>
+    let chartInstance = null;
+    let currentDetectorId = null; // NOVO: Armazena o ID para a API
+
+    // -------------------------------------
+    // 1. CARREGAR DADOS DO DETECTOR VIA API
+    // -------------------------------------
+    function loadDetectorData() {
+        // 1. Obtém o nome do detector do localStorage
+        const detectorName = localStorage.getItem('dashboardDetectorName'); 
+        
+        if (!detectorName) {
+            document.getElementById('detectorName').textContent = "ERRO: Detector não especificado.";
+            document.getElementById('detectorStatusBadge').textContent = "ERRO";
+            document.getElementById('detectorStatusBadge').style.backgroundColor = 'red';
+            return;
+        }
+
+        const apiUrl = `http://localhost/detecterprevine/api/get_detector_details.php?name=${detectorName}`;
+
+        fetch(apiUrl)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erro ao buscar detalhes do detector. Status: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (!data.success) {
+                    alert('Detector não encontrado na base de dados.');
+                    return;
+                }
+                
+                const detectorData = data.detector;
+
+                // Salva o ID do detector para as chamadas de gráfico
+                currentDetectorId = detectorData.detector_id; 
+
+                // 2. Atualiza o Header e Detalhes
+                document.getElementById('detectorName').textContent = detectorData.name;
+                document.getElementById('pageTitle').textContent = `Dashboard - ${detectorData.name}`;
+                document.getElementById('infoName').textContent = detectorData.name;
+                document.getElementById('infoCEP').textContent = detectorData.cep;
+                document.getElementById('infoUpdate').textContent = detectorData.lastUpdate; 
+                document.getElementById('infoPrecision').textContent = detectorData.precision;
+
+                // 3. Atualiza o Badge de Status
+                const statusBadge = document.getElementById('detectorStatusBadge');
+                const status = detectorData.current_status || 'Offline';
+                statusBadge.textContent = status.toUpperCase();
+                let color;
+                switch (status) {
+                    case 'Clean': color = 'green'; break;
+                    case 'Alert': color = 'red'; break;
+                    case 'Warning': color = 'var(--cor-amarelo)'; break;
+                    default: color = 'var(--cor-roxo)';
+                }
+                statusBadge.style.backgroundColor = color;
+                statusBadge.style.color = color === 'var(--cor-amarelo)' ? 'black' : 'white';
+
+                // 4. Inicializa o gráfico (agora busca leituras)
+                alterarPeriodo('24h', currentDetectorId); 
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                document.getElementById('detectorName').textContent = "Falha ao Carregar Dados";
+            });
+    }
+
+    // -------------------------------------
+    // 2. LÓGICA DO GRÁFICO (AGORA VIA API)
+    // -------------------------------------
+
+    function alterarPeriodo(periodo) {
+        if (!currentDetectorId) {
+            alert("Aguardando carregamento do ID do detector.");
+            return;
+        }
+
+        // Remove/Adiciona classe 'active' nos botões
+        document.querySelectorAll('.chart-options button').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.getElementById(`btn${periodo === '24h' ? '24h' : 'Semana'}`).classList.add('active');
+
+        gerarGrafico(periodo, currentDetectorId);
+    }
+
+    function gerarGrafico(periodo, detectorId) {
+        if (chartInstance) chartInstance.destroy();
+        
+        const apiUrl = `http://localhost/detecterprevine/api/get_readings.php?detector_id=${detectorId}&periodo=${periodo}`;
+
+        fetch(apiUrl)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erro na comunicação com a API de leituras. Status: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                const labels = data.labels;
+                const readings = data.data; 
+                
+                let borderColor = periodo === '24h' ? 'var(--cor-roxo)' : 'var(--cor-pink)';
+                let backgroundColor = periodo === '24h' ? 'rgba(153, 51, 255, 0.2)' : 'rgba(255, 51, 153, 0.2)';
+
+                let ctx = document.getElementById('gasChart').getContext('2d');
+                chartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Nível de Gás (PPM)',
+                            data: readings, 
+                            borderColor: borderColor,
+                            backgroundColor: backgroundColor,
+                            fill: true,
+                            tension: 0.4, 
+                            pointRadius: 3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 40,
+                                grid: { color: '#333' },
+                                ticks: { color: 'white' }
+                            },
+                            x: {
+                                grid: { color: '#333' },
+                                ticks: { color: 'white' }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                labels: { color: 'white' }
+                            }
+                        }
+                    }
+                });
+            })
+            .catch(error => {
+                console.error('Erro ao carregar leituras:', error);
+                // Gera um gráfico vazio em caso de erro
+                if (chartInstance) chartInstance.destroy();
+            });
+    }
+
+    // Carrega tudo ao iniciar a página
+    window.onload = loadDetectorData;
+</script>
+</body>
+</html>

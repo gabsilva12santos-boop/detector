@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detecterprevine - Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* Variáveis de Cores */
+        :root {
+            --cor-amarelo: #FFD700;
+            --cor-roxo: #9933FF;
+            --cor-base-fundo: #0a0a0a;
+            --cor-base-card: #FFFFFF;
+        }
+
+        /* Estilo Geral */
+        body, html {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--cor-base-fundo);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: var(--cor-base-card);
+        }
+
+        /* Container Principal do Formulário */
+        .login-container {
+            background-color: #1c1c1c;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.7);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        /* Título e Logo */
+        .login-container h1 {
+            color: var(--cor-amarelo);
+            margin-bottom: 5px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            font-size: 2.5em;
+        }
+        .login-container h2 {
+            color: #ccc;
+            margin-bottom: 30px;
+            font-size: 1.2em;
+            font-weight: 400;
+        }
+
+        /* Campo de Input */
+        .input-group {
+            position: relative;
+            margin-bottom: 25px;
+            text-align: left;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 15px 15px 15px 45px;
+            background-color: #333;
+            color: var(--cor-base-card);
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            box-sizing: border-box;
+            transition: background-color 0.3s;
+        }
+        .input-group input:focus {
+            background-color: #444;
+            outline: 2px solid var(--cor-roxo);
+        }
+        .input-group i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--cor-amarelo);
+            font-size: 1.1em;
+        }
+
+        /* Botão Principal */
+        .login-button {
+            width: 100%;
+            padding: 15px;
+            background-color: var(--cor-roxo);
+            color: var(--cor-base-card);
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .login-button:hover {
+            background-color: #8a2be2;
+        }
+
+        /* Link de Toggle */
+        .toggle-link {
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #aaa;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+        .toggle-link:hover {
+            color: var(--cor-amarelo);
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h1>DETECTER</h1>
+        <h2 id="formTitle">LOGIN</h2>
+        
+        <form id="loginForm" onsubmit="event.preventDefault(); handleLogin();">
+            <div class="input-group">
+                <i class="fas fa-user"></i>
+                <input type="text" id="username" placeholder="Usuário" required>
+            </div>
+            <div class="input-group">
+                <i class="fas fa-lock"></i>
+                <input type="password" id="password" placeholder="Senha" required>
+            </div>
+            
+            <button type="submit" class="login-button">ENTRAR</button>
+        </form>
+
+        <form id="registerForm" onsubmit="event.preventDefault(); handleRegistration();" style="display: none;">
+            <div class="input-group">
+                <i class="fas fa-user-plus"></i>
+                <input type="text" id="regUsername" placeholder="Novo Usuário" required>
+            </div>
+            <div class="input-group">
+                <i class="fas fa-key"></i>
+                <input type="password" id="regPassword" placeholder="Nova Senha" required>
+            </div>
+            <div class="input-group">
+                <i class="fas fa-lock"></i>
+                <input type="password" id="regConfirmPassword" placeholder="Confirme a Senha" required>
+            </div>
+            
+            <button type="submit" class="login-button">CADASTRAR</button>
+        </form>
+        
+        <p class="toggle-link" onclick="toggleForm('register')">
+            Ainda não tem conta? <span id="toggleText" style="color: var(--cor-amarelo);">Registre-se aqui!</span>
+        </p>
+    </div>
+
+    <script>
+        const PROJECT_FOLDER = 'detecterprevine'; // VERIFIQUE ESTE NOME!
+
+        // Função para alternar entre Login e Cadastro
+        function toggleForm(mode) {
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            const formTitle = document.getElementById('formTitle');
+            const toggleText = document.getElementById('toggleText');
+            const toggleLink = document.querySelector('.toggle-link');
+
+            if (mode === 'register') {
+                loginForm.style.display = 'none';
+                registerForm.style.display = 'block';
+                formTitle.textContent = 'REGISTRE-SE';
+                toggleText.textContent = 'Fazer Login!';
+                toggleLink.onclick = () => toggleForm('login');
+            } else {
+                loginForm.style.display = 'block';
+                registerForm.style.display = 'none';
+                formTitle.textContent = 'LOGIN';
+                toggleText.textContent = 'Registre-se aqui!';
+                toggleLink.onclick = () => toggleForm('register');
+            }
+        }
+
+        // FUNÇÃO DE LOGIN - Conexão com a API
+        function handleLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            if (!username || !password) {
+                alert("Por favor, preencha todos os campos.");
+                return;
+            }
+
+            // CORRIGIDO: Usando o nome da pasta do projeto
+            const apiUrl = `http://localhost/${PROJECT_FOLDER}/api/login.php`; 
+
+            fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, password })
+            })
+            .then(response => {
+                // Se o PHP retornar 404 (caminho errado), cai neste throw
+                if (!response.ok) {
+                     throw new Error('Erro de Conexão com a API. Status: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Salva o ID do usuário e nome no localStorage
+                    localStorage.setItem('loggedInUserId', data.user_id); 
+                    localStorage.setItem('loggedInUsername', username);
+                    alert("Login bem-sucedido!");
+                    
+                    // CORRIGIDO: Usando o caminho absoluto para o redirecionamento
+                    window.location.href = `/${PROJECT_FOLDER}/pagina-principal.html`;
+                } else {
+                    alert("Erro de Login: " + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Falha crítica: Verifique o console ou o caminho da API no JS.');
+            });
+        }
+
+        // FUNÇÃO DE REGISTRO - Conexão com a API
+        function handleRegistration() {
+            const username = document.getElementById('regUsername').value;
+            const password = document.getElementById('regPassword').value;
+            const confirmPassword = document.getElementById('regConfirmPassword').value;
+
+            if (!username || !password || !confirmPassword) {
+                alert("Por favor, preencha todos os campos.");
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                alert("As senhas não coincidem!");
+                return;
+            }
+
+            const apiUrl = `http://localhost/${PROJECT_FOLDER}/api/register.php`;
+
+            fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, password })
+            })
+            .then(response => {
+                if (!response.ok) {
+                     throw new Error('Erro na comunicação com o servidor. Status: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    alert("Usuário " + username + " registrado com sucesso! Faça seu Login.");
+                    // Troca para o formulário de Login
+                    toggleForm('login');
+                } else {
+                    alert("Erro no Registro: " + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Falha ao conectar ou processar o registro. Verifique o console.');
+            });
+        }
+    </script>
+</body>
+</html>
