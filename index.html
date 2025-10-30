@@ -155,7 +155,7 @@
     </div>
 
     <script>
-        const PROJECT_FOLDER = 'detecterprevine'; // VERIFIQUE ESTE NOME!
+        const PROJECT_FOLDER = 'detecterprevine'; // Mantido para o redirecionamento local
 
         // Função para alternar entre Login e Cadastro
         function toggleForm(mode) {
@@ -180,7 +180,7 @@
             }
         }
 
-        // FUNÇÃO DE LOGIN - Conexão com a API
+        // FUNÇÃO DE LOGIN - SIMULAÇÃO (NÃO BUSCA PHP)
         function handleLogin() {
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
@@ -190,43 +190,18 @@
                 return;
             }
 
-            // CORRIGIDO: Usando o nome da pasta do projeto
-            const apiUrl = `http://localhost/${PROJECT_FOLDER}/api/login.php`; 
-
-            fetch(apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ username, password })
-            })
-            .then(response => {
-                // Se o PHP retornar 404 (caminho errado), cai neste throw
-                if (!response.ok) {
-                     throw new Error('Erro de Conexão com a API. Status: ' + response.status);
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    // Salva o ID do usuário e nome no localStorage
-                    localStorage.setItem('loggedInUserId', data.user_id); 
-                    localStorage.setItem('loggedInUsername', username);
-                    alert("Login bem-sucedido!");
-                    
-                    // CORRIGIDO: Usando o caminho absoluto para o redirecionamento
-                    window.location.href = `/${PROJECT_FOLDER}/pagina-principal.html`;
-                } else {
-                    alert("Erro de Login: " + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Erro:', error);
-                alert('Falha crítica: Verifique o console ou o caminho da API no JS.');
-            });
+            // SIMULAÇÃO DE LOGIN BEM-SUCEDIDO
+            // Não há mais requisição fetch/PHP aqui.
+            
+            localStorage.setItem('loggedInUsername', username);
+            alert("Login bem-sucedido! (Simulação sem PHP)");
+            
+            // Redirecionamento (mude para o seu caminho local se necessário)
+            //window.location.href = `/${PROJECT_FOLDER}/pagina-principal.html`;
+            window.location.href = `pagina-principal.html`; // Caminho simplificado, supondo que está no mesmo nível
         }
 
-        // FUNÇÃO DE REGISTRO - Conexão com a API
+        // FUNÇÃO DE REGISTRO - SIMULAÇÃO (NÃO BUSCA PHP)
         function handleRegistration() {
             const username = document.getElementById('regUsername').value;
             const password = document.getElementById('regPassword').value;
@@ -242,34 +217,13 @@
                 return;
             }
 
-            const apiUrl = `http://localhost/${PROJECT_FOLDER}/api/register.php`;
+            // SIMULAÇÃO DE REGISTRO BEM-SUCEDIDO
+            // Não há mais requisição fetch/PHP aqui.
 
-            fetch(apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ username, password })
-            })
-            .then(response => {
-                if (!response.ok) {
-                     throw new Error('Erro na comunicação com o servidor. Status: ' + response.status);
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    alert("Usuário " + username + " registrado com sucesso! Faça seu Login.");
-                    // Troca para o formulário de Login
-                    toggleForm('login');
-                } else {
-                    alert("Erro no Registro: " + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Erro:', error);
-                alert('Falha ao conectar ou processar o registro. Verifique o console.');
-            });
+            alert("Usuário " + username + " registrado com sucesso! Faça seu Login. (Simulação sem PHP)");
+            
+            // Troca para o formulário de Login
+            toggleForm('login');
         }
     </script>
 </body>
